@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2D Game Ca1</title>
+        <style>
+            #canvas
+            {
+                border:1px solid black;
+                width:500px;
+                height:500px;
+            }
+
+            #loadingMessage
+            {
+                position:absolute;
+                top:100px;
+                left:100px;
+                z-index:100;
+                font-size:50px;
+            }
+        </style>
+
+    <p>  </p>
+    <!--<a id="saveImageFile" download="image.png" onclick="this.href = canvas.toDataURL('image/png')">Save Score as Screen shot</a>
+    -->
+ <script>
+//Canvas//
+
+  var STAGE_WIDTH = 600,
+	STAGE_HEIGHT = 400,
+	TIME_PER_FRAME = 33, //this equates to 30 fps
+	GAME_FONTS = "bold 20px sans-serif";
+
+var PATH_CHAR = "images/zombieSprite11.png";
+
+var CHAR_WIDTH = 72,
+	CHAR_HEIGHT = 96,
+	CHAR_START_X = 200,
+	CHAR_START_Y = 200,
+	CHAR_SPEED = 5,
+	IMAGE_START_X = 0,
+	IMAGE_START_NORTH_Y = 0,
+	IMAGE_START_EAST_Y = 96,
+	IMAGE_START_SOUTH_Y = 192,
+	IMAGE_START_WEST_Y = 288,	
+	SPRITE_WIDTH = 216;
+
+var TEXT_PRELOADING = "Loading ...", 
+	TEXT_PRELOADING_X = 200, 
+	TEXT_PRELOADING_Y = 200;
+	
+var gameloop, facing, currX, currY, charX, charY, isMoving;	
+
+
+
+var canvas = document.createElement("canvas");
+var g = canvas.getContext("2d");
+var g2 = canvas.getContext("2d");
+canvas.width = 500;
+canvas.height = 500;
+document.body.appendChild(canvas);
+ var dir = 1;
+ var first = true; 
+ var shoot_update = false;
+ var timing = new Date().getTime();
+ var time = Math.round((end - timing) / 1000);
+ var end = new Date().getTime();
+ var distance = 0;
+//background//
+var bgReady = false;
+var bgImage = new Image();
+bgImage.onload = function () {
+	bgReady = true;
+};
+bgImage.src = "images/bgz1.jpg";
+
+// Hero image
+var heroReady = false;
+var heroImage = new Image();
+heroImage.onload = function () {
+	heroReady = true;
+};
+heroImage.src = PATH_CHAR;
+
+//Monster//
+var monsterReady = false;
+var monsterImage = new Image();
+monsterImage.onload = function () {
+	monsterReady = true;
+};
+monsterImage.src = "images/gandalf1.png";
+
+//Bomb//
+var bombReady = false;
+var bombImage = new Image();
+bombImage.onload = function () {
+	bombReady = true;
+};
+bombImage.src = "images/machete.png";
+
+ var bulletReady = false;
+            var bulletImage = new Image();
+            bulletImage.onload = function () {
+                //bulletReady = true;
+            };
+            bulletImage.src = "images/brain1zz.png";
+
+//Game objects//
+var x = Math.floor((Math.random() * 500) + 100);
+var score =0;
+var hero = {speed: 150}; //256 
+var monster = {speed: x};
+var monster2 = {speed: x};
+var bomb = {speed: 256};
+var bullet = {speed: 256};
+//movement in pixels per second//
+var monstersCaught = 0;
+var lifes = 3;
+var monstersShot = 0;
+charX = CHAR_START_X;
+charY = CHAR_START_Y;
+
+currX = IMAGE_START_X;
+currY = IMAGE_START_EAST_Y;
+//Handle keyboard controls//
+var keysDown = {};
+var origin = {};
+addEventListener("keydown", function (e) {
+	keysDown[e.keyCode] = true;
+}, false);
+
+addEventListener("keyup", function (e) {
+	delete keysDown[e.keyCode];
+}, false);
+
+//Reset the game when the player catches a monster//
+var spawnmonster1 = function () {
+	hero.x = canvas.width / 2;
+	hero.y = canvas.height / 2;
+	//Throw the monster somewhere on the screen randomly//
+	monster.x = 32 + (Math.random() * (canvas.width - 64));
+	monster.y = 32 + (Math.random() * (canvas.height - 64));
+	//Throw the bomb somewhere on the screen randomly//
+	bomb.x = 32 + (Math.random() * (canvas.width - 64));
+	bomb.y = 32 + (Math.random() * (canvas.height - 64));
+};
+
+var spawnmonster2 = function () {
+	monster2.x = 32 + (Math.random() * (canvas.width - 64));
+	monster2.y = 32 + (Math.random() * (canvas.height - 64));
+};
+
+var start = function () {
+	hero.x = canvas.width / 2;
+	hero.y = canvas.height / 2;
+	facing = "E";
+	bomb.x = 32 + (Math.random() * (canvas.width - 64));
+	bomb.y = 32 + (Math.random() * (canvas.height - 64));
+        monster.x = 32 + (Math.random() * (canvas.width - 64));
+        monster.y = 32 + (Math.random() * (canvas.height - 64));
+};
+
+function reset() {
+    facing = "E";
+    
+                hero.x = canvas.width / 2;
+                hero.y = canvas.height / 2;
+                bomb.x = 32 + (Math.random() * (canvas.width - 64));
+                bomb.y = 32 + (Math.random() * (canvas.height - 64));
+                // Throw the monster somewhere on the screen randomly
+                monster.x = 32 + (Math.random() * (canvas.width - 64));
+                monster.y = 32 + (Math.random() * (canvas.height - 64));
+            }
+
+//Update game objects//
+var update = function (e) {
+
+	if (38 in keysDown || 87 in keysDown) { // Player holding up
+		hero.y -= hero.speed * e;
+		bomb.y += bomb.speed * e;
+                currY = IMAGE_START_NORTH_Y;
+		if (hero.y<=0) {
+			hero.y=540;
+		}
+		if (bomb.y>=540) {
+			bomb.y=0;
+		}
+                dir=1;
+                   currX += CHAR_WIDTH;
+		
+		if (currX >= SPRITE_WIDTH)
+			currX = 0;
+	}
+	if (40 in keysDown || 83 in keysDown) { // Player holding down
+		hero.y += hero.speed * e;
+		bomb.y -= bomb.speed * e;
+                currY = IMAGE_START_SOUTH_Y;
+		if (hero.y>=540) {
+			hero.y=0;
+		}
+		if (bomb.y<=0) {
+			bomb.y=540;
+		}
+                dir=2;
+                 currX += CHAR_WIDTH;
+		
+		if (currX >= SPRITE_WIDTH)
+			currX = 0;
+	}
+	if (37 in keysDown || 65 in keysDown) { // Player holding left
+		hero.x -= hero.speed * e;
+		bomb.x += bomb.speed * e;
+                 currY = IMAGE_START_WEST_Y;
+		if (hero.x<=0) {
+			hero.x=540;
+		}
+		if (bomb.x>=540) {
+			bomb.x=0;
+		}
+                dir=3;
+                    currX += CHAR_WIDTH;
+		
+		if (currX >= SPRITE_WIDTH)
+			currX = 0;
+		
+	}
+	if (39 in keysDown || 68 in keysDown) { // Player holding right
+		hero.x += hero.speed * e;
+		bomb.x -= bomb.speed * e;
+                 currY = IMAGE_START_EAST_Y;
+		if (hero.x>=540) {
+			hero.x=0;
+		}
+		if (bomb.x<=0) {
+			bomb.x=540;
+		}
+                dir=4;
+                currX += CHAR_WIDTH;
+		
+		if (currX >= SPRITE_WIDTH)
+			currX = 0;
+	}
+
+	//Are they touching?//
+	if (
+		hero.x <= (monster.x + 32)
+		&& monster.x <= (hero.x + 32)
+		&& hero.y <= (monster.y + 32)
+		&& monster.y <= (hero.y + 32)
+	) {
+		++monstersCaught;
+		spawnmonster1();
+	}
+	
+	if (
+		hero.x <= (monster2.x + 32)
+		&& monster2.x <= (hero.x + 32)
+		&& hero.y <= (monster2.y + 32)
+		&& monster2.y <= (hero.y + 32)
+	) {
+		++monstersCaught;
+		spawnmonster2();
+	}
+	
+	if (
+		hero.x <= (bomb.x + 32)
+		&& bomb.x <= (hero.x + 32)
+		&& hero.y <= (bomb.y + 32)
+		&& bomb.y <= (hero.y + 32)
+	) {
+		--lifes;
+		spawnmonster1();
+		spawnmonster2();
+		start();
+	}
+	
+	if (lifes < 0) {
+		lifes = 3;
+		monstersCaught = 0;
+		start();
+	}
+        
+        if (82 in keysDown) 
+                {
+		
+		monstersCaught = 0;
+		timing = new Date().getTime();
+		reset();
+                }
+        
+        
+         if (80 in keysDown)
+                {
+                    pauseGame();
+                }
+
+                if (32 in keysDown) { // Player holding space
+                    bulletReady = true;
+                    bullet.x = hero.x+50;
+                    bullet.y = hero.y+50;
+
+
+                    if (first == true)
+                    {
+                        origin.x = hero.x;
+                        origin.y = hero.y;
+                        first = false;
+                    }
+                    //alert ('spacebar');
+                }
+        
+        
+        
+};
+
+
+
+     var fps = {
+                current: 0,
+                last: 0,
+                lastUpdated: Date.now(), //	Returns the number of milliseconds since midnight Jan 1, 1970
+                update: function () {
+                    fps.current++;
+                    if (Date.now() - fps.lastUpdated >= 1000) {
+                        fps.last = fps.current;
+                        fps.current = 0;
+                        fps.lastUpdated = Date.now();
+                    }
+                    ;
+                }
+            };
+
+
+
+  function shoot (e) {
+
+                if (dir == 1) {
+
+                    bullet.y -= bullet.speed * e * 4;
+                }
+
+                if (dir == 2) {
+
+                    bullet.y += bullet.speed * e * 4;
+                }
+
+                if (dir == 3) {
+
+                    bullet.x -= bullet.speed * e * 4;
+                }
+
+                if (dir == 4) {
+
+                    bullet.x += bullet.speed * e * 4;
+
+                }
+
+                // Are they touching2?
+                if (
+                        bullet.x <= (monster.x + 32)
+                        && monster.x <= (bullet.x + 32)
+                        && hero.y <= (bullet.y + 32)
+                        && monster.y <= (bullet.y + 32)
+                        ) {
+                    ++monstersShot;
+                    reset();
+                }
+             
+
+                //distance = square root sqrt  of ( (x2-x1)^2 + (y2-y1)^2)
+
+                var distance = Math.sqrt(Math.pow(bullet.x - origin.x, 2) + Math.pow(bullet.y - origin.y, 2));
+
+                if (distance > 200)
+                {
+                    bulletReady = false;
+                    first = true;
+                }
+            }
+
+
+
+// Draw everything
+var render = function () {
+	if (bgReady) {
+		g.drawImage(bgImage, 0, 0);
+	}
+
+	if (heroReady) {
+		g.drawImage(heroImage,currX,currY,CHAR_WIDTH,CHAR_HEIGHT,
+					hero.x, hero.y,CHAR_WIDTH,CHAR_HEIGHT);
+	}
+	if (monsterReady) {
+		g.drawImage(monsterImage, monster.x, monster.y);
+	}
+	
+	if (monsterReady) {
+		g.drawImage(monsterImage, monster2.x, monster2.y);
+	}
+		
+	if (bombReady) {
+		g.drawImage(bombImage, bomb.x, bomb.y);
+	}
+          if (bulletReady) {
+                    g.drawImage(bulletImage, bullet.x, bullet.y);
+                }
+
+
+	  // Score
+                g.fillStyle = "rgb(0, 250, 250)";
+                g.font = "20px Helvetica";
+                g.textAlign = "left";
+                g.textBaseline = "top";
+                g.fillText("Humans eaten: " + monstersCaught, 10, 80);
+
+
+                g.fillStyle = "rgb(0, 250, 250)";
+                g.font = "20px Helvetica";
+                g.textAlign = "left";
+                g.textBaseline = "top";
+                g.fillText("Humans Shot: " + monstersShot, 10, 100);
+
+                // co-ordinates
+                g.fillStyle = "rgb(0, 250, 250)";
+                g.font = "20px Helvetica";
+                g.textAlign = "left";
+                g.textBaseline = "top";
+                g.fillText("x:" + parseInt(hero.x), 182, 470);
+                g.fillText("y:" + parseInt(hero.y), 282, 470);
+
+	
+                g2.fillStyle = "rgb(0, 250, 250)";
+                g2.font = "24px Helvetica";
+                g2.textAlign = "left";
+                g2.textBaseline = "top";
+                g2.fillText("Lifes: " + lifes, 390, 10);
+
+        
+                fps.update();
+                g.fillText("FPS: " + fps.last, 10, 10);
+                if(fps.lastUpdated<30)
+                {
+                    alert("YOUR FPS IS TOO DAMN LOW");
+                }
+
+                end = new Date().getTime();
+                time = Math.round((end - timing) / 1000);
+                g.fillText("Time: " + time, 390, 42);
+                
+                 score = monstersCaught + monstersShot;
+                g.fillText("Score: " + score, 390, 70);
+                  if(score <=5)
+                {
+                  g.fillText("Level: 1", 10, 35);
+              
+                }
+                else if(score >5 && score <10)
+                {         
+               g.fillText("Level: 2",10, 35);  
+                }
+           
+           
+                else if(score >= 10 && score <15)
+                 {
+               g.fillText("Level: 3",10, 35);
+ 
+                 }
+            else if(score => 24)
+                {
+                    g.fillStyle = "red";
+                g.font = "100px Times Roman";
+                g.fillText("You Win!", 40, 150);
+                }
+        
+        
+        
+};
+
+function save()
+{
+    localStorage.time=time;
+    localStorage.score=score;
+}
+
+function loadSave()
+{
+    time = Number(localStorage.time);
+    score = Number(localStorage.score);
+}
+        //game = setTimeout(gameLoop, 1000 / 30);
+
+        function pauseGame() {
+                game = clearTimeout(game);
+            }
+
+            function pauseGame() {
+                if (!gamePaused) {
+                    game = clearTimeout(game);
+                    gamePaused = true;
+                } else if (gamePaused) {
+                    game = setTimeout(main, 1000 / 30);
+                    gamePaused = false;
+                }
+            }
+
+
+
+
+//The main game loop//
+var main = function () {
+                var now = Date.now();
+                var delta = now - then;
+                shoot(delta / 1000);
+                update(delta / 1000);
+                console.log(dir);
+                render();
+                then = now;
+	// Request to do this again ASAP
+	requestAnimationFrame(main);
+};
+
+// Cross-browser support for requestAnimationFrame
+var w = window;
+requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame || w.msRequestAnimationFrame || w.mozRequestAnimationFrame;
+
+//Let's play this game!//
+var then = Date.now();
+spawnmonster1();
+spawnmonster2();
+start();
+main();
+//reset();        
+ 
+ </script>
+
+
+        <p> WASD & ARROWS: Move player<br>
+            SPACE: Shoot<br>
+            HOLD P: Pause<br>
+            R : Restart
+        </p>  
+        <button onClick="save()">Save </button>
+        <button onClick="loadSave()">Load Save</button>
+
+</body>
+</html>
